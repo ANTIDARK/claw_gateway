@@ -57,55 +57,37 @@ PROVIDERS = {
 # ==============================================================================
 MODEL_INFO = {
     # Mistral AI 系列
-    "mistral-small-4": {
+    "mistral-small": {
         "provider": "mistral",
-        "model_name": "mistral-small-4",
+        "model_name": "mistral-small-2603",
         "tags": ["fast", "cheap", "chat", "code", "vision"],
         "rpm": 2,
     },
-    "mistral-devstral-small-2": {
+    "mistral-large": {
         "provider": "mistral",
-        "model_name": "devstral-small-2",
-        "tags": ["code", "fast", "cheap"],
-        "rpm": 2,
-    },
-    "mistral-large-3": {
-        "provider": "mistral",
-        "model_name": "mistral-large-3",
-        "tags": ["reasoning", "long_context", "vision"],
+        "model_name": "mistral-large-2512",
+        "tags": ["fast", "cheap", "chat", "code", "vision"],
         "rpm": 2,
     },
 
     # Cerebras AI 系列
-    "cerebras-llama4-scout": {
+    "cerebras-llama3.1": {
         "provider": "cerebras",
-        "model_name": "llama-4-scout",
+        "model_name": "llama3.1-8b",
         "tags": ["fast", "chat", "cheap"],
         "rpm": 30,
     },
-    "cerebras-llama3.3-70b": {
+    "cerebras-qwen3": {
         "provider": "cerebras",
-        "model_name": "llama-3.3-70b-instruct",
-        "tags": ["code", "reasoning", "long_context"],
-        "rpm": 30,
-    },
-    "cerebras-qwen3-235b": {
-        "provider": "cerebras",
-        "model_name": "qwen3-235b-instruct",
+        "model_name": "qwen-3-235b-a22b-instruct-2507",
         "tags": ["chinese", "reasoning", "long_context"],
-        "rpm": 30,
-    },
-    "cerebras-glm4.7": {
-        "provider": "cerebras",
-        "model_name": "glm-4.7",
-        "tags": ["chinese", "chat"],
         "rpm": 30,
     },
 
     # NVIDIA NIM 系列
-    "nvidia-llama4-maverick-17b": {
+    "nvidia-gpt": {
         "provider": "nvidia",
-        "model_name": "meta/llama-4-maverick-17b-128e-instruct",
+        "model_name": "openai/gpt-oss-120b",
         "tags": ["fast", "chat", "reasoning"],
         "rpm": 40,
     },
@@ -115,39 +97,30 @@ MODEL_INFO = {
         "tags": ["code", "reasoning", "math"],
         "rpm": 40,
     },
-    "nvidia-qwen3.5-397b": {
+    "nvidia-qwen3.5": {
         "provider": "nvidia",
-        "model_name": "qwen/qwen3.5-397b-a17b",
+        "model_name": "qwen/qwen3-next-80b-a3b-instruct",
         "tags": ["chinese", "long_context", "reasoning"],
         "rpm": 40,
     },
     "nvidia-kimi-k2.5": {
         "provider": "nvidia",
-        "model_name": "moonshotai/kimi-k2.5-instruct",
+        "model_name": "moonshotai/kimi-k2.5",
         "tags": ["long_context", "document"],
         "rpm": 40,
     },
-
-    # 图像生成模型
-    "nvidia-flux1-dev": {
-        "provider": "nvidia",
-        "model_name": "black-forest-labs/flux-1-dev",
-        "tags": ["image"],
-        "rpm": 10,
+    # maoleio 系列
+    "maoleio-gpt-5.4-mini": {
+        "provider": "maoleio",
+        "model_name": "gpt-5.4-mini",
+        "tags": ["fast", "chat", "reasoning"],
+        "rpm": 60,
     },
-    "nvidia-sdxl-1024": {
-        "provider": "nvidia",
-        "model_name": "stabilityai/stable-diffusion-xl-1024-v1-0",
-        "tags": ["image"],
-        "rpm": 10,
-    },
-
-    # 视频生成模型
-    "nvidia-svd-xt-1.1": {
-        "provider": "nvidia",
-        "model_name": "stabilityai/stable-video-diffusion-img2vid-xt-1-1",
-        "tags": ["video"],
-        "rpm": 2,
+    "maoleio-gpt-5.1": {
+        "provider": "maoleio",
+        "model_name": "gpt-5.1",
+        "tags": ["code", "reasoning", "math"],
+        "rpm": 60,
     },
 }
 
@@ -155,39 +128,24 @@ MODEL_INFO = {
 # 3. 任务模型池（按优先级排序，失败自动fallback）
 # ==============================================================================
 TASK_MODEL_POOLS = {
+    # 短对话：优先速度快、成本低的模型
     "chat_short": [
-        "cerebras-llama4-scout",
-        "nvidia-llama4-maverick-17b",
-        "mistral-small-4",
+        "cerebras-llama3.1",
+        "mistral-small",
+        "nvidia-qwen3.5",
     ],
+    # 长对话：优先长上下文、推理能力强的模型
     "chat_long": [
+        "maoleio-gpt-5.1",
+        "mistral-large",
         "nvidia-kimi-k2.5",
-        "cerebras-qwen3-235b",
-        "nvidia-qwen3.5-397b",
-    ],
-    "code": [
-        "nvidia-deepseek-v3.2",
-        "cerebras-llama3.3-70b",
-        "mistral-devstral-small-2",
-    ],
-    "chinese": [
-        "cerebras-qwen3-235b",
-        "nvidia-qwen3.5-397b",
-        "cerebras-glm4.7",
-    ],
-    "image": [
-        "nvidia-flux1-dev",
-        "nvidia-sdxl-1024",
-    ],
-    "video": [
-        "nvidia-svd-xt-1.1",
     ],
 }
 
 # ==============================================================================
 # ======================== 核心初始化 ========================
 # ==============================================================================
-app = FastAPI(title="Claw Gateway 全自动热重载版")
+app = FastAPI(title="Claw Gateway 纯文本双池版")
 limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
@@ -287,7 +245,7 @@ async def acquire_token(model_key: str):
         await asyncio.sleep(0.05)
 
 # ==============================================================================
-# ======================== 全自动热重载核心 ========================
+# ======================== 配置热重载核心 ========================
 # ==============================================================================
 def reload_config_from_file():
     """从Python文件重新加载所有配置，不中断服务"""
@@ -349,29 +307,21 @@ def start_file_watcher():
     return observer
 
 # ==============================================================================
-# ======================== 智能任务路由 ========================
+# ======================== 任务识别逻辑（仅长短对话，彻底解决误判问题）========================
 # ==============================================================================
 def detect_task(messages: List[Any]) -> str:
-    all_text = " ".join(str(m.get("content", "")) for m in messages).lower()
+    """仅通过对话轮数和文本长度区分长短对话，无其他复杂规则"""
+    # 统计用户对话轮数
     user_turns = len([m for m in messages if m.get("role") == "user"])
-    
-    # 代码任务优先识别
-    code_keywords = ["代码", "python", "debug", "编程", "函数", "java", "c++", "script", "bug", "code", "function"]
-    if any(k in all_text for k in code_keywords):
-        return "code"
-    
-    # 中文任务识别
-    chinese_chars = sum(1 for c in all_text if '\u4e00' <= c <= '\u9fff')
-    if chinese_chars > len(all_text) * 0.5:
-        if user_turns >= CONFIG["LONG_TURN_THRESHOLD"] or len(all_text) > CONFIG["LONG_TEXT_THRESHOLD"]:
-            return "chat_long"
-        return "chinese"
-    
-    # 长对话/长文本识别
-    if user_turns >= CONFIG["LONG_TURN_THRESHOLD"] or len(all_text) > CONFIG["LONG_TEXT_THRESHOLD"]:
+    # 统计所有输入文本总长度
+    all_text = " ".join(str(m.get("content", "")) for m in messages)
+    text_length = len(all_text)
+
+    # 满足任意一个条件即判定为长对话
+    if user_turns >= CONFIG["LONG_TURN_THRESHOLD"] or text_length >= CONFIG["LONG_TEXT_THRESHOLD"]:
         return "chat_long"
-    
-    # 默认短对话
+
+    # 其余全部为短对话
     return "chat_short"
 
 def select_best_model(task: str, session_id: Optional[str] = None) -> Optional[str]:
@@ -382,8 +332,8 @@ def select_best_model(task: str, session_id: Optional[str] = None) -> Optional[s
             return locked_model
         else:
             del session_locks[session_id]
-    
-    # 按任务池顺序选择
+
+    # 按任务池顺序选择可用模型
     pool = TASK_MODEL_POOLS[task]
     for model_key in pool:
         if is_model_available(model_key):
@@ -393,76 +343,80 @@ def select_best_model(task: str, session_id: Optional[str] = None) -> Optional[s
     return None
 
 # ==============================================================================
-# ======================== 统一请求执行器 ========================
+# ======================== 统一请求执行器（已修复bug）========================
 # ==============================================================================
-async def run_task(task: str, payload: Dict, task_type: str = "text", session_id: Optional[str] = None):
+async def run_task(task: str, payload: Dict, session_id: Optional[str] = None):
     global last_model, last_task
     last_task = task
-    
+
     for _ in range(CONFIG["MAX_RETRY"] + 1):
         model_key = select_best_model(task, session_id)
         if not model_key:
             return {"error": "所有模型不可用"}, 503, None
-        
+
         conf = get_model_conf(model_key)
         await acquire_token(model_key)
-        
+
         headers = {
             "Authorization": f"Bearer {conf['api_key']}",
             "Content-Type": "application/json"
         }
         full_payload = {**payload, "model": conf["model_name"]}
-        
-        # 选择对应端点
-        if task_type == "image":
-            url = f"{conf['base_url']}/images/generations"
-        elif task_type == "video":
-            url = f"{conf['base_url']}/videos/generations"
-        else:
-            url = f"{conf['base_url']}/chat/completions"
-        
+        url = f"{conf['base_url']}/chat/completions"
+
+        start_time = time.time()
         try:
             response = requests.post(url, headers=headers, json=full_payload, timeout=90)
             response.raise_for_status()
             result = response.json()
-            
+            response_time = time.time() - start_time
+
             # 更新统计数据
             last_model = model_key
             task_usage[task] += 1
             model_usage[model_key] += 1
             if "usage" in result:
                 token_usage[model_key] += result["usage"].get("total_tokens", 0)
-            
+
+            # 修复：正确注入网关信息到返回结果
+            result["gateway"] = {
+                "task": task,
+                "model": model_key,
+                "response_time": round(response_time, 2)
+            }
+
             return result, 200, model_key
-            
+
         except requests.exceptions.HTTPError as e:
             status_code = e.response.status_code
-            if status_code in (429, 402, 403):
+            # 仅额度耗尽/无权限才永久标记，其他错误临时标记
+            if status_code in (402, 403, 429):
                 mark_failed(model_key, permanent=True)
             else:
                 mark_failed(model_key, permanent=False)
+            log(f"模型请求失败 {model_key} 状态码: {status_code}", "warning")
         except Exception as e:
             mark_failed(model_key, permanent=False)
-    
+            log(f"模型请求异常 {model_key} 错误: {str(e)}", "warning")
+
     return {"error": "所有模型均失败"}, 503, None
 
-# 流式请求执行器（带自动降级）
 async def run_stream_task(task: str, payload: Dict, session_id: Optional[str] = None):
     pool = TASK_MODEL_POOLS[task]
     for model_key in pool:
         if not is_model_available(model_key):
             continue
-        
+
         conf = get_model_conf(model_key)
         await acquire_token(model_key)
-        
+
         headers = {
             "Authorization": f"Bearer {conf['api_key']}",
             "Content-Type": "application/json"
         }
         full_payload = {**payload, "model": conf["model_name"], "stream": True}
         url = f"{conf['base_url']}/chat/completions"
-        
+
         try:
             with requests.post(url, headers=headers, json=full_payload, stream=True, timeout=120) as r:
                 r.raise_for_status()
@@ -470,15 +424,18 @@ async def run_stream_task(task: str, payload: Dict, session_id: Optional[str] = 
                     if chunk:
                         yield chunk.decode() + "\n"
                         await asyncio.sleep(0)
+            # 流式请求成功更新统计
+            model_usage[model_key] += 1
             return
-        except Exception:
+        except Exception as e:
             mark_failed(model_key, permanent=False)
+            log(f"流式请求失败 {model_key} 错误: {str(e)}", "warning")
             continue
-    
+
     yield b'data: [DONE]\n\n'
 
 # ==============================================================================
-# ======================== OpenAI兼容API接口 ========================
+# ======================== OpenAI兼容API接口（仅保留对话接口）========================
 # ==============================================================================
 class ChatRequest(BaseModel):
     messages: List[Any]
@@ -487,22 +444,13 @@ class ChatRequest(BaseModel):
     stream: Optional[bool] = False
     user: Optional[str] = None
 
-class ImageRequest(BaseModel):
-    prompt: str
-    size: Optional[str] = "1024x1024"
-
-class VideoRequest(BaseModel):
-    image: str
-    steps: Optional[int] = 25
-    fps: Optional[int] = 10
-
 @app.post("/v1/chat/completions")
 @limiter.limit(CONFIG["GATEWAY_RATE_LIMIT"])
 async def chat_completions(req: ChatRequest, request: Request, Authorization: str = Header(None)):
     auth(Authorization)
     task = detect_task(req.messages)
     session_id = req.user or request.client.host
-    
+
     if not req.stream:
         payload = {
             "messages": req.messages,
@@ -510,10 +458,7 @@ async def chat_completions(req: ChatRequest, request: Request, Authorization: st
             "max_tokens": req.max_tokens,
             "stream": False
         }
-        res, code, model = await run_task(task, payload, "text", session_id)
-        if code == 200:
-            res["gateway_task"] = task
-            res["gateway_model"] = model
+        res, code, model = await run_task(task, payload, session_id)
         return JSONResponse(res, status_code=code)
     else:
         payload = {
@@ -526,23 +471,7 @@ async def chat_completions(req: ChatRequest, request: Request, Authorization: st
             media_type="text/event-stream"
         )
 
-@app.post("/v1/images/generations")
-@limiter.limit(CONFIG["GATEWAY_RATE_LIMIT"])
-async def generate_image(req: ImageRequest, request: Request, Authorization: str = Header(None)):
-    auth(Authorization)
-    payload = {"prompt": req.prompt, "size": req.size, "n": 1}
-    res, code, _ = await run_task("image", payload, "image")
-    return JSONResponse(res, status_code=code)
-
-@app.post("/v1/videos/generations")
-@limiter.limit(CONFIG["GATEWAY_RATE_LIMIT"])
-async def generate_video(req: VideoRequest, request: Request, Authorization: str = Header(None)):
-    auth(Authorization)
-    payload = {"image": req.image, "num_inference_steps": req.steps, "fps": req.fps}
-    res, code, _ = await run_task("video", payload, "video")
-    return JSONResponse(res, status_code=code)
-
-# API方式热重载
+# 热重载接口
 @app.get("/reload")
 async def reload_config_api(Authorization: str = Header(None)):
     auth(Authorization)
@@ -555,7 +484,8 @@ async def reload_config_api(Authorization: str = Header(None)):
 async def clear_failed():
     failed_temp.clear()
     failed_perm.clear()
-    return {"status": "ok"}
+    log("✅ 已清空所有失败模型标记", "info")
+    return {"status": "ok", "msg": "已清空所有失败模型标记"}
 
 @app.get("/clear-sessions")
 async def clear_sessions():
@@ -577,22 +507,22 @@ async def health():
     }
 
 # ==============================================================================
-# ======================== Web管理面板 ========================
+# ======================== Web管理面板（适配双池）========================
 # ==============================================================================
 @app.get("/", response_class=HTMLResponse)
 async def panel():
     clean_old_logs()
     failed_list = list(failed_perm) + [m for m in failed_temp if not is_model_available(m)]
-    
+
     return f"""
     <!DOCTYPE html>
     <html>
     <head>
         <meta charset="utf-8">
-        <title>Claw Gateway 全自动热重载版</title>
+        <title>Claw Gateway 纯文本双池版</title>
         <style>
-            :root {{--bg:#121212;--card:#1e1e1e;--text:#e0e0e0;--primary:#007bff;--danger:#dc3545;--success:#28a745;}}
-            body{{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);max-width:900px;margin:0 auto;padding:20px;}}
+            :root {{--bg:#121212;--card:#1e1e1e;--text:#e0e0e0;--primary:#007bff;--danger:#dc3545;--success:#28a745;--border:#333;}}
+            body{{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);max-width:1000px;margin:0 auto;padding:20px;}}
             .card{{background:var(--card);padding:20px;border-radius:12px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,0.3);}}
             .btn{{padding:10px 16px;border:none;border-radius:8px;cursor:pointer;margin-right:8px;font-size:14px;}}
             .btn-primary{{background:var(--primary);color:white;}}
@@ -600,36 +530,34 @@ async def panel():
             .btn-secondary{{background:#6c757d;color:white;}}
             .grid{{display:grid;grid-template-columns:1fr 1fr;gap:16px;}}
             .success{{color:var(--success);}}.danger{{color:var(--danger);}}
+            pre{{background:#2d2d2d;padding:12px;border-radius:8px;overflow-x:auto;white-space:pre-wrap;}}
         </style>
     </head>
     <body>
-        <h1>🤖 Claw Gateway 全自动热重载版</h1>
-        
+        <h1>🤖 Claw Gateway 纯文本双池版</h1>
+
         <div class="card">
             <h3>运行状态</h3>
             <div>自动热重载: <span class="success">{'已开启' if CONFIG['AUTO_RELOAD'] else '已关闭'}</span></div>
             <div>当前任务: {last_task or '无'}</div>
             <div>当前模型: {last_model or '无'}</div>
+            <div>可用模型: <span class="success">{len([m for m in MODEL_INFO if is_model_available(m)])}</span></div>
             <div>失败模型: <span class="danger">{failed_list or '无'}</span></div>
             <div>活跃会话: {len(session_locks)}</div>
         </div>
-        
+
         <div class="grid">
             <div class="card">
                 <h3>任务统计</h3>
                 <div>短对话: {task_usage['chat_short']}</div>
                 <div>长对话: {task_usage['chat_long']}</div>
-                <div>中文: {task_usage['chinese']}</div>
-                <div>代码: {task_usage['code']}</div>
-                <div>画图: {task_usage['image']}</div>
-                <div>视频: {task_usage['video']}</div>
             </div>
             <div class="card">
                 <h3>模型统计（含官方RPM）</h3>
                 {''.join([f'<div>{m}: {model_usage[m]} 次 (RPM: {MODEL_INFO[m]["rpm"]})</div>' for m in model_usage])}
             </div>
         </div>
-        
+
         <div class="card">
             <h3>操作</h3>
             <button class="btn btn-primary" onclick="fetch('/clear-failed').then(r=>location.reload())">清空失败</button>
@@ -646,12 +574,12 @@ async def panel():
 # ==============================================================================
 if __name__ == "__main__":
     import uvicorn
-    
+
     # 启动配置文件自动监控
     observer = None
     if CONFIG["AUTO_RELOAD"]:
         observer = start_file_watcher()
-    
+
     try:
         log(f"网关启动: http://{CONFIG['HOST']}:{CONFIG['PORT']}")
         log(f"管理面板: http://{CONFIG['HOST']}:{CONFIG['PORT']}")
