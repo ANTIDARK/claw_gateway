@@ -1,5 +1,5 @@
 # 其他
-在huggingface部署了一个大模型，可以在免费空间尝试一些小模型：https://huggingface.co/spaces/antidark/smallmodels
+在huggingface部署了一个大模型体验空间，同时支持网页端和api使用，可以部署在免费空间尝试一些小模型：https://huggingface.co/spaces/antidark/smallmodels
 
 # Claw Gateway 多模型聚合网关
 ## 一键整合 Mistral / Cerebras / NVIDIA 免费模型 | 可视化面板 | 配置自动写回脚本 | 无需重启
